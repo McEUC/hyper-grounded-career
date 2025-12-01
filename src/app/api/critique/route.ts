@@ -30,10 +30,9 @@ export async function POST(req: Request) {
     }
 
     // 2. Format the Transcript for the AI
-    const transcript = logs.map(l => `${l.role.toUpperCase()}: ${l.content}`).join("\n");
+    const transcript = logs.map((l: any) => `${l.role.toUpperCase()}: ${l.content}`).join("\n");
 
     // 3. Gemini 3 Pro: The "Hiring Committee"
-    // We ask for JSON output specifically.
     const prompt = `
       CONTEXT: You are the Lead Hiring Manager for the role described in: ${interview?.job_url}.
       SYSTEM CONTEXT: ${interview?.cached_context}
@@ -56,17 +55,26 @@ export async function POST(req: Request) {
     `;
 
     const response = await genAI.models.generateContent({
-      model: "gemini-2.5-pro",
+      model: "gemini-3-pro-preview",
       contents: prompt,
       config: {
-        // CHANGED: Removed 'thinkingLevel: high' to speed up generation
-        // Gemini 3 is smart enough to critique without deep thinking for this task.
-        responseMimeType: "application/json", 
+        responseMimeType: "application/json",
       } as any,
     });
 
+    // --- FIX IS HERE: Removed () from .text ---
+    const resultText = response.text || "{}";
+    let feedbackJson;
+    
+    try {
+      feedbackJson = JSON.parse(resultText);
+    } catch (e) {
+      console.error("JSON Parse Error:", e);
+      feedbackJson = { score: 0, summary: "Error generating report.", strengths: [], weaknesses: [], lingo_misses: [] };
+    }
+
     // 4. Save to Database
-    await supabase
+    const { error: updateError } = await supabase
       .from("interviews")
       .update({
         score: feedbackJson.score,
@@ -74,6 +82,8 @@ export async function POST(req: Request) {
         status: "completed"
       })
       .eq("id", interviewId);
+
+    if (updateError) console.error("DB Update Error:", updateError);
 
     return NextResponse.json({ result: feedbackJson });
 
