@@ -4,8 +4,9 @@ interface Window {
 }
 
 interface SpeechRecognitionEvent {
+  resultIndex: number; // <--- THIS WAS MISSING
   results: {
-    length: number; // <--- This fixes the error!
+    length: number;
     [index: number]: {
       isFinal: boolean;
       [index: number]: {
