@@ -11,7 +11,6 @@ export async function POST(req: Request) {
 
     console.log("Starting Deep Research on:", jobUrl);
 
-    // GEMINI 3 PRO: The "Deep Research" Agent
     const response = await client.models.generateContent({
       model: "gemini-3-pro-preview",
       contents: [
@@ -21,36 +20,34 @@ export async function POST(req: Request) {
             { 
               text: `${SAFETY_INSTRUCTION}
               
-              CONTEXT: You are the "Persona Architect" for a high-fidelity career simulator.
+              CONTEXT: You are the "Persona Architect" for a Tech Career Simulator.
               
               INPUT DATA:
               1. JOB URL: ${jobUrl}
-              2. CANDIDATE RESUME: "${resumeText.substring(0, 5000)}"
+              2. RESUME BIO: "${resumeText.substring(0, 5000)}"
 
               TASK:
-              1. Use Google Search to analyze the company in the URL. Find their tech stack, recent news, and corporate values.
-              2. Analyze the Candidate Resume to find "Knowledge Gaps" compared to the job.
-              3. Create a SYSTEM PROMPT for an AI Interviewer that embodies this specific company's culture.
+              1. Use Google Search to analyze the URL. 
+                 CRITICAL: If the URL is blocked or generic, INFER the role based on the Resume Bio provided.
+                 ASSUME the context is SOFTWARE ENGINEERING / DATA / TECH unless explicitly stated otherwise.
+              2. Create a SYSTEM PROMPT for an AI Interviewer.
 
               OUTPUT:
-              Return ONLY the raw System Prompt text. Do not output markdown. 
-              The System Prompt must define:
-              - The Persona (Name, Role, Tone - e.g., "Skeptical CTO").
-              - The Company Context (Specific tools they use).
-              - The Candidate's Weakness (What to probe).
-              - The "Dialect" (Specific lingo to use).
+              Return ONLY the raw System Prompt text. 
+              The Persona MUST be a specific role (e.g., "Senior React Developer", "Data Scientist").
+              Do NOT default to "Civil Engineer" or generic "Engineer". DO NOT describe physical actions, you are talking directly to a person like a normal interview. 
               ` 
             }
           ]
         }
       ],
       config: {
-        thinkingLevel: "high", // Force deep reasoning
+        thinkingLevel: "high",
         tools: [{ googleSearch: {} }, { urlContext: {} }],
       } as any, 
     });
 
-    const systemPrompt = response.text || "You are a helpful interviewer.";
+    const systemPrompt = response.text || "You are a professional interviewer.";
 
     return NextResponse.json({ result: systemPrompt });
   } catch (error) {

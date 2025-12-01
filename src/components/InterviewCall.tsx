@@ -49,9 +49,23 @@ export default function InterviewCall() {
         recognition.continuous = true; 
         recognition.interimResults = true; 
         recognition.lang = "en-US";
+        // REPLACED: Better transcript accumulation
         recognition.onresult = (event: SpeechRecognitionEvent) => {
-          const current = event.results[event.results.length - 1][0].transcript;
-          setTranscript(current);
+          let finalTranscript = "";
+          let interimTranscript = "";
+
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript + " ";
+            } else {
+              interimTranscript += event.results[i][0].transcript;
+            }
+          }
+          
+          // Append to state only if we have a final result to avoid duplication loops
+          if (finalTranscript) {
+            setTranscript(prev => prev + finalTranscript);
+          }
         };
         recognitionRef.current = recognition;
       }

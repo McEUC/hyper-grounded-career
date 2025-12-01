@@ -56,16 +56,14 @@ export async function POST(req: Request) {
     `;
 
     const response = await genAI.models.generateContent({
-      model: "gemini-3-pro-preview",
+      model: "gemini-2.5-pro",
       contents: prompt,
       config: {
-        thinkingLevel: "high",
-        responseMimeType: "application/json", // <--- Force JSON
+        // CHANGED: Removed 'thinkingLevel: high' to speed up generation
+        // Gemini 3 is smart enough to critique without deep thinking for this task.
+        responseMimeType: "application/json", 
       } as any,
     });
-
-    const resultText = response.text || "{}";
-    const feedbackJson = JSON.parse(resultText);
 
     // 4. Save to Database
     await supabase
